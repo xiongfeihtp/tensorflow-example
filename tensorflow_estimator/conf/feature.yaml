@@ -1,0 +1,230 @@
+## Feature Configuration
+# Using tf.feature_column in TensorFlow.
+# see https://www.tensorflow.org/api_docs/python/tf/feature_column
+
+# Each feature consists 3 attributes `type`, `transform`, `parameter`.
+# 1. feature: feature name required, must in schema.yaml.
+# 2. type: required, feature type, `category` or `continuous`.
+# 3. transform: feature transform.
+# 4. parameter: main parameter for transform.
+#    (1) type: category
+#         transform: `hash_bucket` or `vocab` or `identity`.
+#           hash_bucket  ==> tf.feature.categorical_column_with_hash_bucket
+#           vocab        ==> tf.feature.categorical_column_with_vocabulary_list
+#           identity     ==> tf. feature.categorical_column_with_identity
+#         parameter: examples as follows,
+#           1000            (hash_bucket_size  for `hash_bucket`)
+#           ['a', 'b', 'c'] (vocabulary_list for `vocab`)
+#           15              (num_buckets  for `identity`)
+#    (2) type: continuous
+#         transform: `min_max`, `log`, `standard` normalization for normalizer_fn in
+#                    tf.feature_column.numeric_column, set empty to not do normalization.
+#           `min_max`    ==> x = (x-min) / (x-max);
+#           `log`        ==> x = log(x), all feature values must >= 1
+#           `standard`   ==> x = (x-mean) / std
+#
+#         parameter:
+#           normalization: [min, max] or [mean, std] list for `min_max` or `standard`; set empty for `log`.
+#           boundaries: optional, set boundaries, eg: [5, 10, 15, 20] for `discretize`
+#                       (bucketized continuous feature for wide input or as cross feature),
+#                       set empty for not use continuous feature for wide input.
+# Set unused features by using symbol `#` ahead of the lines.
+# Category features with hash_bucket using embedding_column to feed deep, others by indicator_column.
+# All listed features are used in model.
+
+# Q & A about hash_bucket_size:
+# If category size=1000, how much should hash_bucket_size be ?
+#   An interesting discovery is that randomly chose N number a_i between 1~N, i=1,...N
+#     let b_i = a_i % N, the distinct b_i from all N number is about 0.633.
+#     in other words, a random hash func chose N as hash_bucket_size collision rate is 0.633.
+#   Recommend `hash_bucket_size` to be 2~3*category size.
+#     larger `hash_bucket_size` require more memory and complexity, but smaller cause more collision
+#   Here use the strategy that
+#     for low sparsity category, set `hash_bucket_size` 3~4*category size to reduce collision
+#     for high sparsity category, set 1.5~2*category size to save memory.
+
+# TODO: support all tf.feature_column.
+item_id:
+  type: category
+  transform: hash_bucket
+  parameter: 10000
+
+item_brand_id:
+  type: category
+  transform: hash_bucket
+  parameter: 100
+
+#item_city_id:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 20000
+#
+#user_id:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 100
+#
+#user_gender_id:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 1000
+#
+#user_age_level:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 500000
+#
+#user_occupation_id:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 100
+#
+#context_id:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 500
+#
+#shop_id:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 10000000
+#
+#category_0:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 10000
+#
+#category_1:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 500
+#
+#category_2:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 1000
+#
+#property_0:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 1000
+#
+#property_1:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 1000
+#
+#property_2:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 100
+#
+#predict_category_0:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 1000
+#
+#predict_category_1:
+#  type: category
+#  transform: hash_bucket
+#  parameter: 1000
+#
+#predict_category_2:
+#  type: category
+#  transform: vocab
+#  parameter: [0,1,2,3,4,5]
+#
+#week:
+#  type: category
+#  transform: vocab
+#  parameter: [1,2,3,4,5,6,7]
+#
+#hour:
+#  type: category
+#  transform: vocab
+#  parameter: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+#
+#
+#item_price_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [80,150]
+#    boundaries: [90,95,100,105,110,115,120,125,130]
+#
+#item_sales_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10,60]
+#    boundaries: [20,25,30,35,40,45,50]
+#
+#item_collected_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#item_pv_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#user_star_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#shop_review_num_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#context_page_id:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#shop_review_positive_rate:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#shop_star_level:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#shop_score_service:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#shop_score_delivery:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
+#
+#shop_score_description:
+#  type: continuous
+#  transform: min_max
+#  parameter:
+#    normalization: [10, 90]
+#    boundaries:  [15,20,25,30,35,40,45,50,55,60,65]
